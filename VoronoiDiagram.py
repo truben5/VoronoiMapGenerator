@@ -1,5 +1,7 @@
 import pygame, sys, random
-import Point, VoronoiCell
+import VoronoiCell as cell
+import pytess
+
 pygame.init()
 
 class VoronoiDiagram(object):
@@ -7,95 +9,68 @@ class VoronoiDiagram(object):
 	def __init__(self):
 		##User input to decide number of cells
 		self.numPoints = int(raw_input("Input number of cells: "))
-		self.LENGTH = 750
-		self.WIDTH = 700 
+		self.LENGTH = 950
+		self.WIDTH = 900 
 		self.cells = None
 		self.seeds = None
+		self.SCREEN = None
 
-	##Creates white screen and allows exit on clicking x
+	##Creates white screen and makes random seeds
 	def createScreen(self):
 		## Sets screen size
-		SCREEN = pygame.display.set_mode((self.LENGTH,self.WIDTH))
+		self.SCREEN = pygame.display.set_mode((self.LENGTH,self.WIDTH))
 		## Make screen background white
-		SCREEN.fill((255,255,255))
+		self.SCREEN.fill((255,255,255))
+
 		## Seed screen and save seeds in list
-		seedList = self.seedScreen(self.numPoints,SCREEN)
-		## Find closest seed and set color to that seed color
-		## Return list all pixels grouped based on their closest seed
-		pixelDistr = self.closestSeed(seedList,SCREEN)
-		## Return list of all cells
-		cellList = self.defineCells(pixelDistr,seedList)
-
-		##Set seeds to white
-		for i in range(len(cellList)):
-			##print (cellList[i].seedPoint.x)
-			SCREEN.set_at((cellList[i].seedPoint.x,cellList[i].seedPoint.y),(250,250,250))
-
-		pygame.image.save(SCREEN, str(self.numPoints) + "diagram_start.jpeg")
-
-		##Relaxes cells in a loop
-		for i in range(2):
-			self.seeds = self.relaxCells(cellList,SCREEN)
+		self.seeds = self.makeSeeds(self.numPoints,self.SCREEN)
+		## Updates screen to show seeds
 		pygame.display.update()
-		pygame.image.save(SCREEN, str(self.numPoints) + "diagram_relaxed2.jpeg")
-		return SCREEN
+		return
 
-	##Randomly chooses number of points and places them on screen. 
-	##Returns list of seed coordinates
-	def seedScreen(self, numPoints,screen):
-		seeds = []
+	## Uses seeds to create voronoi diagram and update screen
+	def createDiagram(self):
+		diagram = pytess.voronoi(self.seeds)
+		allCells = []
+		##print(diagram)
+
+		for i in range(len(diagram)):
+			## diagram[i][0] contains seedPoint for polygon
+			## diagram[i][1] contains all vertices for polygon i
+			myCell = cell.VoronoiCell(diagram[i][0], diagram[i][1])
+			allCells.append(myCell)
+			##print (diagram[i][1])
+			pygame.draw.polygon(self.SCREEN,(random.randint(0,255),random.randint(0,255),random.randint(0,255)),diagram[i][1],0)
+
+		pygame.display.update()
+		## Saves cells within VoronoiDiagram cells attribute
+		self.cells = allCells
+		##pygame.image.save(SCREEN, "F:/Projects/voronoiMap/" + str(self.numPoints) + "diagram_start.jpeg")
+
+		return
+
+	##Randomly determines seed corrdinates
+	## returns list of objects and coordinates
+	def makeSeeds(self, numPoints,screen):
+		seedCoordinates = []
+
 		for i in range(0,numPoints):
-			## makes random color for the seedpoint object
-			randColor = pygame.Color(random.randint(0,250),random.randint(0,250),random.randint(0,250))
-			## makes seedpoint at random location
-			myPoint = Point.Point(random.randint(0,self.LENGTH),random.randint(0,self.WIDTH), randColor)
-			screen.set_at((myPoint.x, myPoint.y),((0,0,0)))
-			seeds.append(myPoint)
-		return seeds
+			coordinates = []
+			## makes random x and y value for corrdinates
+			xVal = random.randint(0,self.LENGTH)
+			yVal = random.randint(0,self.WIDTH)
 
-	##Determines closest seed point
-	def closestSeed(self,seedPointList, screen):
-		##print (len(seedPointList))
-		allPixel = [[] for i in range(len(seedPointList))]
-		## Range of x coordinates 
-		for i in range(0,self.LENGTH):
-			## Range of y coordinates
-			for q in range(0,self.WIDTH):
-				pixel = Point.Point(i,q,None)
+			coordinates.append(xVal)
+			coordinates.append(yVal)
+			## Adds coordinates to seeds list
+			seedCoordinates.append(coordinates)
 
-				seedDist = []
-				## Range of seedPoints
-				for z in range(0,len(seedPointList)):
-					## Get distance from pixel to seed points and add them to seedDist list
-					pixelDist = pixel.distance(seedPointList[z])
-					seedDist.append(pixelDist)
-				## Use seedDist to find closest seedPoint
-				closeSeedInd = pixel.closePoint(seedDist,seedPointList)
-				allPixel[closeSeedInd].append(pixel)
-				screen.set_at((pixel.x,pixel.y),pixel.color)
-		return allPixel
+			## Sets seedPoints to black on screen
+			screen.set_at((xVal, yVal),((0,0,0)))
+		return seedCoordinates
 
-	def defineCells(self, pixelDistr, seedList):
-		myCells = []
-		for i in range(len(seedList)):
-			cell = VoronoiCell.VoronoiCell(pixelDistr[i],seedList[i])
-			##print ("SeedPoint is: " + str(cell.seedPoint.x) + " " + str(cell.seedPoint.y))
-			myCells.append(cell)
-		return myCells
 
-	def relaxCells(self,cellList,screen):
-		myCentroids = []
-		for i in range(len(cellList)):
-			centroid = cellList[i].findCentroid()
-			myCentroids.append(centroid)
-			screen.set_at((centroid.x,centroid.y),(0,0,0))
-		## Find closest seed and set color to that seed color
-		## Return list all pixels grouped based on their closest seed
-		pixelDistr = self.closestSeed(myCentroids,screen)
-		## Return list of all cells
-		self.cells = self.defineCells(pixelDistr,myCentroids)
-		for i in range(len(myCentroids)):
-			##Set centroids to black 
-			screen.set_at((myCentroids[i].x, myCentroids[i].y),((0,0,0)))
-		return myCentroids
+		
+
+
 

@@ -3,8 +3,8 @@ import pygame
 import sys
 
 myMap = Map.Map()
-#myMap.createScreen()
-myMap.sortCells()
+myMap.vDiagram.createDiagram()
+#myMap.findCenterCell()
 
 while True:
 	for event in pygame.event.get():
