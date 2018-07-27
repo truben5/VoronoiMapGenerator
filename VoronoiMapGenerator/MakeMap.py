@@ -3,7 +3,7 @@ import pygame
 import sys
 
 myMap = Map.Map()
-myMap.vDiagram.createDiagram()
+#myMap.vDiagram.createDiagram()
 #myMap.findCenterCell()
 
 while True:
